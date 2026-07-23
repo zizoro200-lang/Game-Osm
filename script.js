@@ -21,6 +21,7 @@ const supabaseClient =
 
 let tournaments = [];
 let selectedTournament = null;
+let currentUser = null;
 let authMode = "login";
 
 
@@ -36,13 +37,11 @@ function openAuthModal(mode = "login") {
 
     document
         .getElementById("authModal")
-        .classList
-        .add("active");
+        .classList.add("active");
 
     document
         .getElementById("authError")
-        .style
-        .display = "none";
+        .style.display = "none";
 
 }
 
@@ -51,8 +50,7 @@ function closeAuthModal() {
 
     document
         .getElementById("authModal")
-        .classList
-        .remove("active");
+        .classList.remove("active");
 
     document
         .getElementById("authForm")
@@ -60,8 +58,7 @@ function closeAuthModal() {
 
     document
         .getElementById("authError")
-        .style
-        .display = "none";
+        .style.display = "none";
 
 }
 
@@ -152,7 +149,6 @@ async function handleAuth(event) {
 
     event.preventDefault();
 
-
     const email =
         document
             .getElementById("authEmail")
@@ -164,9 +160,13 @@ async function handleAuth(event) {
             .getElementById("authPassword")
             .value;
 
-
     const errorElement =
         document.getElementById("authError");
+
+    const submitButton =
+        document.getElementById(
+            "authSubmitButton"
+        );
 
 
     errorElement.style.display =
@@ -186,10 +186,17 @@ async function handleAuth(event) {
     }
 
 
-    const submitButton =
-        document.getElementById(
-            "authSubmitButton"
-        );
+    if (password.length < 6) {
+
+        errorElement.textContent =
+            "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+
+        errorElement.style.display =
+            "block";
+
+        return;
+
+    }
 
 
     submitButton.disabled =
@@ -205,38 +212,62 @@ async function handleAuth(event) {
     let result;
 
 
-    if (authMode === "login") {
+    try {
 
-        result =
-            await supabaseClient.auth.signInWithPassword({
+        if (authMode === "login") {
 
-                email:
-                    email,
+            result =
+                await supabaseClient.auth.signInWithPassword({
 
-                password:
-                    password
+                    email:
+                        email,
 
-            });
+                    password:
+                        password
 
-    } else {
+                });
 
-        result =
-            await supabaseClient.auth.signUp({
+        } else {
 
-                email:
-                    email,
+            result =
+                await supabaseClient.auth.signUp({
 
-                password:
-                    password
+                    email:
+                        email,
 
-            });
+                    password:
+                        password
+
+                });
+
+        }
+
+
+    } catch (error) {
+
+        console.error(
+            "Auth error:",
+            error
+        );
+
+        errorElement.textContent =
+            "حدث خطأ غير متوقع ❌";
+
+        errorElement.style.display =
+            "block";
+
+        submitButton.disabled =
+            false;
+
+        updateAuthUI();
+
+        return;
 
     }
 
 
     submitButton.disabled =
         false;
-
 
     updateAuthUI();
 
@@ -247,7 +278,6 @@ async function handleAuth(event) {
             "Auth error:",
             result.error
         );
-
 
         errorElement.textContent =
             getAuthErrorMessage(
@@ -296,13 +326,19 @@ async function handleAuth(event) {
 
     await updateUserUI();
 
+    renderTournaments();
+
 }
 
 
 function getAuthErrorMessage(error) {
 
+    const message =
+        error?.message || "";
+
+
     if (
-        error.message.includes(
+        message.includes(
             "Invalid login credentials"
         )
     ) {
@@ -313,7 +349,7 @@ function getAuthErrorMessage(error) {
 
 
     if (
-        error.message.includes(
+        message.includes(
             "User already registered"
         )
     ) {
@@ -324,7 +360,7 @@ function getAuthErrorMessage(error) {
 
 
     if (
-        error.message.includes(
+        message.includes(
             "Password should be at least"
         )
     ) {
@@ -334,8 +370,19 @@ function getAuthErrorMessage(error) {
     }
 
 
+    if (
+        message.includes(
+            "Email not confirmed"
+        )
+    ) {
+
+        return "يجب تأكيد بريدك الإلكتروني أولًا.";
+
+    }
+
+
     return (
-        error.message ||
+        message ||
         "حدث خطأ أثناء العملية."
     );
 
@@ -370,12 +417,18 @@ async function logoutUser() {
     }
 
 
+    currentUser =
+        null;
+
+
     showToast(
         "تم تسجيل الخروج 👋"
     );
 
 
     await updateUserUI();
+
+    renderTournaments();
 
 }
 
@@ -392,7 +445,7 @@ async function updateUserUI() {
         await supabaseClient.auth.getUser();
 
 
-    const user =
+    currentUser =
         data?.user || null;
 
 
@@ -417,7 +470,14 @@ async function updateUserUI() {
         );
 
 
-    if (user) {
+    if (!loginButton) {
+
+        return;
+
+    }
+
+
+    if (currentUser) {
 
         loginButton.style.display =
             "none";
@@ -429,7 +489,7 @@ async function updateUserUI() {
             "flex";
 
         userEmail.textContent =
-            user.email;
+            currentUser.email || "";
 
     } else {
 
@@ -625,8 +685,8 @@ function renderTournaments(
 
 
             const isOwner =
-                tournament.ownerId &&
                 currentUser &&
+                tournament.ownerId &&
                 tournament.ownerId ===
                 currentUser.id;
 
@@ -742,13 +802,6 @@ function renderTournaments(
     );
 
 }
-
-
-// ============================
-// CURRENT USER
-// ============================
-
-let currentUser = null;
 
 
 // ============================
@@ -1211,6 +1264,13 @@ async function joinTournament(
             );
 
 
+    const submitButton =
+        document
+            .getElementById(
+                "joinSubmitButton"
+            );
+
+
     if (
         !playerName
     ) {
@@ -1260,10 +1320,84 @@ async function joinTournament(
         "none";
 
 
+    submitButton.disabled =
+        true;
+
+
+    submitButton.textContent =
+        "جاري التسجيل...";
+
+
+    // ============================
+    // PRIVATE TOURNAMENT
+    // ============================
+
     if (
         selectedTournament.type ===
         "private"
     ) {
+
+        // منع إرسال طلب مكرر
+
+        const {
+            data: existingRequest
+        } =
+            await supabaseClient
+                .from(
+                    "tournament_requests"
+                )
+                .select("id,status")
+                .eq(
+                    "tournament_id",
+                    selectedTournament.id
+                )
+                .eq(
+                    "user_id",
+                    currentUser.id
+                )
+                .maybeSingle();
+
+
+        if (existingRequest) {
+
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "إرسال طلب الانضمام";
+
+
+            if (
+                existingRequest.status ===
+                "pending"
+            ) {
+
+                error.textContent =
+                    "لقد أرسلت طلبًا بالفعل، وهو قيد المراجعة 📩";
+
+            } else if (
+                existingRequest.status ===
+                "approved"
+            ) {
+
+                error.textContent =
+                    "تم قبول طلبك بالفعل.";
+
+            } else {
+
+                error.textContent =
+                    "تم رفض طلبك سابقًا.";
+
+            }
+
+
+            error.style.display =
+                "block";
+
+            return;
+
+        }
+
 
         const {
             error: requestError
@@ -1301,6 +1435,13 @@ async function joinTournament(
             );
 
 
+            submitButton.disabled =
+                false;
+
+            submitButton.textContent =
+                "إرسال طلب الانضمام";
+
+
             error.textContent =
                 "حدث خطأ أثناء إرسال طلب الانضمام ❌";
 
@@ -1320,7 +1461,7 @@ async function joinTournament(
             )
             .style
             .display =
-            "none";
+                "none";
 
 
         document
@@ -1329,7 +1470,7 @@ async function joinTournament(
             )
             .style
             .display =
-            "block";
+                "block";
 
 
         document
@@ -1354,8 +1495,54 @@ async function joinTournament(
             )
             .style
             .display =
-            "none";
+                "none";
 
+
+        return;
+
+    }
+
+
+    // ============================
+    // OPEN TOURNAMENT
+    // ============================
+
+    // منع التسجيل المكرر
+
+    const {
+        data: existingParticipant
+    } =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .select("id")
+            .eq(
+                "tournament_id",
+                selectedTournament.id
+            )
+            .eq(
+                "user_id",
+                currentUser.id
+            )
+            .maybeSingle();
+
+
+    if (existingParticipant) {
+
+        submitButton.disabled =
+            false;
+
+        submitButton.textContent =
+            "انضم للبطولة";
+
+
+        error.textContent =
+            "أنت مسجل بالفعل في هذه البطولة ✅";
+
+
+        error.style.display =
+            "block";
 
         return;
 
@@ -1395,6 +1582,13 @@ async function joinTournament(
         );
 
 
+        submitButton.disabled =
+            false;
+
+        submitButton.textContent =
+            "انضم للبطولة";
+
+
         error.textContent =
             "حدث خطأ أثناء التسجيل ❌";
 
@@ -1414,7 +1608,7 @@ async function joinTournament(
         )
         .style
         .display =
-        "none";
+            "none";
 
 
     document
@@ -1423,7 +1617,7 @@ async function joinTournament(
         )
         .style
         .display =
-        "block";
+            "block";
 
 
     document
@@ -1431,7 +1625,7 @@ async function joinTournament(
             "successTitle"
         )
         .textContent =
-        "تم قبولك! 🎉";
+            "تم قبولك! 🎉";
 
 
     document
@@ -1439,7 +1633,7 @@ async function joinTournament(
             "successText"
         )
         .textContent =
-        "يمكنك الآن الانضمام إلى جروب البطولة.";
+            "يمكنك الآن الانضمام إلى جروب البطولة.";
 
 
     const groupLink =
@@ -1641,6 +1835,10 @@ async function openManageTournamentModal(
 }
 
 
+// ============================
+// LOAD MANAGEMENT
+// ============================
+
 async function loadTournamentManagement(
     tournamentId
 ) {
@@ -1658,6 +1856,12 @@ async function loadTournamentManagement(
             .eq(
                 "status",
                 "pending"
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
             );
 
 
@@ -1670,6 +1874,12 @@ async function loadTournamentManagement(
             .eq(
                 "tournament_id",
                 tournamentId
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
             );
 
 
@@ -1821,6 +2031,13 @@ async function approveRequest(
     requestId
 ) {
 
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
     const {
         data: request,
         error: requestError
@@ -1837,7 +2054,10 @@ async function approveRequest(
             .single();
 
 
-    if (requestError || !request) {
+    if (
+        requestError ||
+        !request
+    ) {
 
         showToast(
             "تعذر العثور على الطلب ❌"
@@ -1878,6 +2098,57 @@ async function approveRequest(
     }
 
 
+    // منع إضافة اللاعب مرتين
+
+    const {
+        data: existingParticipant
+    } =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .select("id")
+            .eq(
+                "tournament_id",
+                request.tournament_id
+            )
+            .eq(
+                "user_id",
+                request.user_id
+            )
+            .maybeSingle();
+
+
+    if (existingParticipant) {
+
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .update({
+                status:
+                    "approved"
+            })
+            .eq(
+                "id",
+                requestId
+            );
+
+
+        showToast(
+            "اللاعب مسجل بالفعل في البطولة."
+        );
+
+
+        await loadTournamentManagement(
+            request.tournament_id
+        );
+
+        return;
+
+    }
+
+
     const {
         error: participantError
     } =
@@ -1903,6 +2174,10 @@ async function approveRequest(
 
 
     if (participantError) {
+
+        console.error(
+            participantError
+        );
 
         showToast(
             "حدث خطأ أثناء قبول الطلب ❌"
@@ -1963,6 +2238,13 @@ async function rejectRequest(
     requestId
 ) {
 
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
     const {
         data: request
     } =
@@ -1981,6 +2263,10 @@ async function rejectRequest(
 
 
     if (!request) {
+
+        showToast(
+            "تعذر العثور على الطلب ❌"
+        );
 
         return;
 
@@ -2123,10 +2409,20 @@ async function openDetailsModal(
             .eq(
                 "tournament_id",
                 tournament.id
+            )
+            .order(
+                "created_at",
+                {
+                    ascending: true
+                }
             );
 
 
     if (error) {
+
+        console.error(
+            error
+        );
 
         showToast(
             "حدث خطأ أثناء تحميل المشاركين ❌"
@@ -2268,23 +2564,38 @@ function showToast(
         );
 
 
+    if (!toast) {
+
+        return;
+
+    }
+
+
     toast.textContent =
         message;
 
 
-    toast.classList
-        .add("show");
-
-
-    setTimeout(
-        () => {
-
-            toast.classList
-                .remove("show");
-
-        },
-        3000
+    toast.classList.add(
+        "show"
     );
+
+
+    clearTimeout(
+        window.toastTimer
+    );
+
+
+    window.toastTimer =
+        setTimeout(
+            () => {
+
+                toast.classList.remove(
+                    "show"
+                );
+
+            },
+            3000
+        );
 
 }
 
@@ -2365,6 +2676,9 @@ window.addEventListener(
                     }
                 );
 
+            selectedTournament =
+                null;
+
         }
 
     }
@@ -2376,7 +2690,7 @@ window.addEventListener(
 // ============================
 
 supabaseClient.auth.onAuthStateChange(
-    async function(
+    function(
         event,
         session
     ) {
@@ -2385,10 +2699,19 @@ supabaseClient.auth.onAuthStateChange(
             session?.user || null;
 
 
-        await updateUserUI();
+        // نستخدم setTimeout حتى لا تحدث
+        // مشاكل أثناء تغيير حالة Supabase
 
+        setTimeout(
+            async () => {
 
-        renderTournaments();
+                await updateUserUI();
+
+                renderTournaments();
+
+            },
+            0
+        );
 
     }
 );
@@ -2402,7 +2725,10 @@ document.addEventListener(
     "DOMContentLoaded",
     async function() {
 
-        await loadTournaments();
+        updateAuthUI();
+
+        updateTournamentTypeInfo();
+
 
         const {
             data
@@ -2417,7 +2743,7 @@ document.addEventListener(
         await updateUserUI();
 
 
-        updateTournamentTypeInfo();
+        await loadTournaments();
 
     }
 );
