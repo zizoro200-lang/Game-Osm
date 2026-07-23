@@ -20,8 +20,434 @@ const supabaseClient =
 // ============================
 
 let tournaments = [];
-
 let selectedTournament = null;
+let authMode = "login";
+
+
+// ============================
+// AUTH MODAL
+// ============================
+
+function openAuthModal(mode = "login") {
+
+    authMode = mode;
+
+    updateAuthUI();
+
+    document
+        .getElementById("authModal")
+        .classList
+        .add("active");
+
+    document
+        .getElementById("authError")
+        .style
+        .display = "none";
+
+}
+
+
+function closeAuthModal() {
+
+    document
+        .getElementById("authModal")
+        .classList
+        .remove("active");
+
+    document
+        .getElementById("authForm")
+        .reset();
+
+    document
+        .getElementById("authError")
+        .style
+        .display = "none";
+
+}
+
+
+function toggleAuthMode() {
+
+    authMode =
+        authMode === "login"
+            ? "signup"
+            : "login";
+
+    updateAuthUI();
+
+}
+
+
+function updateAuthUI() {
+
+    const title =
+        document.getElementById("authTitle");
+
+    const subtitle =
+        document.getElementById("authSubtitle");
+
+    const submitButton =
+        document.getElementById("authSubmitButton");
+
+    const switchText =
+        document.getElementById("authSwitchText");
+
+    const switchButton =
+        document.getElementById("authSwitchButton");
+
+    const passwordInput =
+        document.getElementById("authPassword");
+
+
+    if (authMode === "login") {
+
+        title.textContent =
+            "تسجيل الدخول";
+
+        subtitle.textContent =
+            "سجل دخولك للانضمام إلى البطولات";
+
+        submitButton.textContent =
+            "تسجيل الدخول";
+
+        switchText.textContent =
+            "ليس لديك حساب؟";
+
+        switchButton.textContent =
+            "إنشاء حساب";
+
+        passwordInput.autocomplete =
+            "current-password";
+
+    } else {
+
+        title.textContent =
+            "إنشاء حساب";
+
+        subtitle.textContent =
+            "أنشئ حسابك وابدأ المنافسة";
+
+        submitButton.textContent =
+            "إنشاء حساب";
+
+        switchText.textContent =
+            "لديك حساب بالفعل؟";
+
+        switchButton.textContent =
+            "تسجيل الدخول";
+
+        passwordInput.autocomplete =
+            "new-password";
+
+    }
+
+}
+
+
+// ============================
+// HANDLE AUTH
+// ============================
+
+async function handleAuth(event) {
+
+    event.preventDefault();
+
+
+    const email =
+        document
+            .getElementById("authEmail")
+            .value
+            .trim();
+
+    const password =
+        document
+            .getElementById("authPassword")
+            .value;
+
+
+    const errorElement =
+        document.getElementById("authError");
+
+
+    errorElement.style.display =
+        "none";
+
+
+    if (!email || !password) {
+
+        errorElement.textContent =
+            "من فضلك أكمل جميع البيانات.";
+
+        errorElement.style.display =
+            "block";
+
+        return;
+
+    }
+
+
+    const submitButton =
+        document.getElementById(
+            "authSubmitButton"
+        );
+
+
+    submitButton.disabled =
+        true;
+
+
+    submitButton.textContent =
+        authMode === "login"
+            ? "جاري تسجيل الدخول..."
+            : "جاري إنشاء الحساب...";
+
+
+    let result;
+
+
+    if (authMode === "login") {
+
+        result =
+            await supabaseClient.auth.signInWithPassword({
+
+                email:
+                    email,
+
+                password:
+                    password
+
+            });
+
+    } else {
+
+        result =
+            await supabaseClient.auth.signUp({
+
+                email:
+                    email,
+
+                password:
+                    password
+
+            });
+
+    }
+
+
+    submitButton.disabled =
+        false;
+
+
+    updateAuthUI();
+
+
+    if (result.error) {
+
+        console.error(
+            "Auth error:",
+            result.error
+        );
+
+
+        errorElement.textContent =
+            getAuthErrorMessage(
+                result.error
+            );
+
+        errorElement.style.display =
+            "block";
+
+        return;
+
+    }
+
+
+    if (authMode === "signup") {
+
+        if (
+            result.data.user &&
+            !result.data.session
+        ) {
+
+            errorElement.textContent =
+                "تم إنشاء الحساب بنجاح ✅ تحقق من بريدك الإلكتروني لتفعيل الحساب.";
+
+            errorElement.style.display =
+                "block";
+
+            return;
+
+        }
+
+        showToast(
+            "تم إنشاء الحساب بنجاح 🎉"
+        );
+
+    } else {
+
+        showToast(
+            "تم تسجيل الدخول بنجاح 👋"
+        );
+
+    }
+
+
+    closeAuthModal();
+
+    await updateUserUI();
+
+}
+
+
+function getAuthErrorMessage(error) {
+
+    if (
+        error.message.includes(
+            "Invalid login credentials"
+        )
+    ) {
+
+        return "البريد الإلكتروني أو كلمة المرور غير صحيحة.";
+
+    }
+
+
+    if (
+        error.message.includes(
+            "User already registered"
+        )
+    ) {
+
+        return "هذا البريد الإلكتروني مسجل بالفعل.";
+
+    }
+
+
+    if (
+        error.message.includes(
+            "Password should be at least"
+        )
+    ) {
+
+        return "كلمة المرور يجب أن تكون 6 أحرف على الأقل.";
+
+    }
+
+
+    return (
+        error.message ||
+        "حدث خطأ أثناء العملية."
+    );
+
+}
+
+
+// ============================
+// LOGOUT
+// ============================
+
+async function logoutUser() {
+
+    const {
+        error
+    } =
+        await supabaseClient.auth.signOut();
+
+
+    if (error) {
+
+        console.error(
+            "Logout error:",
+            error
+        );
+
+        showToast(
+            "حدث خطأ أثناء تسجيل الخروج ❌"
+        );
+
+        return;
+
+    }
+
+
+    showToast(
+        "تم تسجيل الخروج 👋"
+    );
+
+
+    await updateUserUI();
+
+}
+
+
+// ============================
+// UPDATE USER UI
+// ============================
+
+async function updateUserUI() {
+
+    const {
+        data
+    } =
+        await supabaseClient.auth.getUser();
+
+
+    const user =
+        data?.user || null;
+
+
+    const loginButton =
+        document.getElementById(
+            "loginNavButton"
+        );
+
+    const signupButton =
+        document.getElementById(
+            "signupNavButton"
+        );
+
+    const userArea =
+        document.getElementById(
+            "userArea"
+        );
+
+    const userEmail =
+        document.getElementById(
+            "userEmail"
+        );
+
+
+    if (user) {
+
+        loginButton.style.display =
+            "none";
+
+        signupButton.style.display =
+            "none";
+
+        userArea.style.display =
+            "flex";
+
+        userEmail.textContent =
+            user.email;
+
+    } else {
+
+        loginButton.style.display =
+            "inline-flex";
+
+        signupButton.style.display =
+            "inline-flex";
+
+        userArea.style.display =
+            "none";
+
+        userEmail.textContent =
+            "";
+
+    }
+
+}
 
 
 // ============================
@@ -30,13 +456,19 @@ let selectedTournament = null;
 
 async function loadTournaments() {
 
-    const { data, error } =
+    const {
+        data,
+        error
+    } =
         await supabaseClient
             .from("tournaments")
             .select("*")
-            .order("created_at", {
-                ascending: false
-            });
+            .order(
+                "created_at",
+                {
+                    ascending: false
+                }
+            );
 
 
     if (error) {
@@ -55,41 +487,44 @@ async function loadTournaments() {
     }
 
 
-    tournaments = data.map(
-        tournament => ({
+    tournaments =
+        (data || []).map(
+            tournament => ({
 
-            id:
-                tournament.id,
+                id:
+                    tournament.id,
 
-            name:
-                tournament.name,
+                name:
+                    tournament.name,
 
-            description:
-                tournament.description || "",
+                description:
+                    tournament.description || "",
 
-            type:
-                tournament.tournament_type || "open",
+                type:
+                    tournament.tournament_type ||
+                    "open",
 
-            reward:
-                tournament.reward_coins || 0,
+                reward:
+                    tournament.reward_coins || 0,
 
-            minLevel:
-                tournament.min_level,
+                minLevel:
+                    tournament.min_level,
 
-            maxLevel:
-                tournament.max_level,
+                maxLevel:
+                    tournament.max_level,
 
-            groupUrl:
-                tournament.group_url,
+                groupUrl:
+                    tournament.group_url,
 
-            ownerId:
-                tournament.owner_id || null,
+                ownerId:
+                    tournament.owner_id ||
+                    null,
 
-            createdAt:
-                tournament.created_at
+                createdAt:
+                    tournament.created_at
 
-        })
-    );
+            })
+        );
 
 
     renderTournaments();
@@ -121,7 +556,15 @@ function renderTournaments(
         );
 
 
-    grid.innerHTML = "";
+    if (!grid) {
+
+        return;
+
+    }
+
+
+    grid.innerHTML =
+        "";
 
 
     count.textContent =
@@ -181,6 +624,13 @@ function renderTournaments(
                     : "انضم للبطولة";
 
 
+            const isOwner =
+                tournament.ownerId &&
+                currentUser &&
+                tournament.ownerId ===
+                currentUser.id;
+
+
             card.innerHTML = `
 
                 <div class="card-top">
@@ -233,17 +683,53 @@ function renderTournaments(
                 </div>
 
 
-                <button
+                <div class="card-actions">
 
-                    class="join-button"
+                    <button
 
-                    onclick="openJoinModal(${tournament.id})"
+                        class="join-button"
 
-                >
+                        onclick="openJoinModal(${tournament.id})"
 
-                    ${joinText}
+                    >
 
-                </button>
+                        ${joinText}
+
+                    </button>
+
+
+                    <button
+
+                        class="details-button"
+
+                        onclick="openDetailsModal(${tournament.id})"
+
+                    >
+
+                        التفاصيل
+
+                    </button>
+
+
+                    ${
+                        isOwner
+                            ? `
+                                <button
+
+                                    class="manage-button"
+
+                                    onclick="openManageTournamentModal(${tournament.id})"
+
+                                >
+
+                                    إدارة
+
+                                </button>
+                            `
+                            : ""
+                    }
+
+                </div>
 
             `;
 
@@ -259,6 +745,13 @@ function renderTournaments(
 
 
 // ============================
+// CURRENT USER
+// ============================
+
+let currentUser = null;
+
+
+// ============================
 // CREATE TOURNAMENT
 // ============================
 
@@ -267,6 +760,21 @@ async function createTournament(
 ) {
 
     event.preventDefault();
+
+
+    if (!currentUser) {
+
+        showToast(
+            "يجب تسجيل الدخول أولًا 🔐"
+        );
+
+        openAuthModal(
+            "login"
+        );
+
+        return;
+
+    }
 
 
     const name =
@@ -334,10 +842,6 @@ async function createTournament(
             .trim();
 
 
-    // ============================
-    // VALIDATION
-    // ============================
-
     if (
         !name ||
         !description ||
@@ -393,11 +897,9 @@ async function createTournament(
     }
 
 
-    // ============================
-    // INSERT
-    // ============================
-
-    const { error } =
+    const {
+        error
+    } =
         await supabaseClient
             .from("tournaments")
             .insert({
@@ -421,7 +923,10 @@ async function createTournament(
                     maxLevel,
 
                 group_url:
-                    groupUrl
+                    groupUrl,
+
+                owner_id:
+                    currentUser.id
 
             });
 
@@ -442,10 +947,6 @@ async function createTournament(
     }
 
 
-    // ============================
-    // RESET
-    // ============================
-
     document
         .getElementById(
             "createTournamentForm"
@@ -454,7 +955,6 @@ async function createTournament(
 
 
     updateTournamentTypeInfo();
-
 
     closeCreateModal();
 
@@ -515,6 +1015,21 @@ function openJoinModal(
     id
 ) {
 
+    if (!currentUser) {
+
+        showToast(
+            "يجب تسجيل الدخول أولًا 🔐"
+        );
+
+        openAuthModal(
+            "login"
+        );
+
+        return;
+
+    }
+
+
     selectedTournament =
         tournaments.find(
             tournament =>
@@ -531,8 +1046,6 @@ function openJoinModal(
     }
 
 
-    // TITLE
-
     document
         .getElementById(
             "joinTitle"
@@ -540,8 +1053,6 @@ function openJoinModal(
         .textContent =
             selectedTournament.name;
 
-
-    // TYPE
 
     const typeElement =
         document.getElementById(
@@ -592,8 +1103,6 @@ function openJoinModal(
 
     }
 
-
-    // RESET UI
 
     document
         .getElementById(
@@ -650,6 +1159,23 @@ async function joinTournament(
     event.preventDefault();
 
 
+    if (!currentUser) {
+
+        showToast(
+            "يجب تسجيل الدخول أولًا 🔐"
+        );
+
+        closeJoinModal();
+
+        openAuthModal(
+            "login"
+        );
+
+        return;
+
+    }
+
+
     if (
         !selectedTournament
     ) {
@@ -685,10 +1211,6 @@ async function joinTournament(
             );
 
 
-    // ============================
-    // VALIDATE NAME
-    // ============================
-
     if (
         !playerName
     ) {
@@ -703,10 +1225,6 @@ async function joinTournament(
 
     }
 
-
-    // ============================
-    // VALIDATE LEVEL
-    // ============================
 
     if (
 
@@ -742,10 +1260,6 @@ async function joinTournament(
         "none";
 
 
-    // ============================
-    // PRIVATE TOURNAMENT
-    // ============================
-
     if (
         selectedTournament.type ===
         "private"
@@ -753,25 +1267,29 @@ async function joinTournament(
 
         const {
             error: requestError
-        } = await supabaseClient
-            .from(
-                "tournament_requests"
-            )
-            .insert({
+        } =
+            await supabaseClient
+                .from(
+                    "tournament_requests"
+                )
+                .insert({
 
-                tournament_id:
-                    selectedTournament.id,
+                    tournament_id:
+                        selectedTournament.id,
 
-                player_name:
-                    playerName,
+                    player_name:
+                        playerName,
 
-                player_level:
-                    playerLevel,
+                    player_level:
+                        playerLevel,
 
-                status:
-                    "pending"
+                    status:
+                        "pending",
 
-            });
+                    user_id:
+                        currentUser.id
+
+                });
 
 
         if (
@@ -802,7 +1320,7 @@ async function joinTournament(
             )
             .style
             .display =
-                "none";
+            "none";
 
 
         document
@@ -811,7 +1329,7 @@ async function joinTournament(
             )
             .style
             .display =
-                "block";
+            "block";
 
 
         document
@@ -819,7 +1337,7 @@ async function joinTournament(
                 "successTitle"
             )
             .textContent =
-                "تم إرسال طلبك 📩";
+            "تم إرسال طلبك 📩";
 
 
         document
@@ -827,7 +1345,7 @@ async function joinTournament(
                 "successText"
             )
             .textContent =
-                "طلبك الآن قيد المراجعة من صاحب البطولة.";
+            "طلبك الآن قيد المراجعة من صاحب البطولة.";
 
 
         document
@@ -836,7 +1354,7 @@ async function joinTournament(
             )
             .style
             .display =
-                "none";
+            "none";
 
 
         return;
@@ -844,28 +1362,28 @@ async function joinTournament(
     }
 
 
-    // ============================
-    // OPEN TOURNAMENT
-    // ============================
-
     const {
         error: insertError
-    } = await supabaseClient
-        .from(
-            "participants"
-        )
-        .insert({
+    } =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .insert({
 
-            tournament_id:
-                selectedTournament.id,
+                tournament_id:
+                    selectedTournament.id,
 
-            player_name:
-                playerName,
+                player_name:
+                    playerName,
 
-            player_level:
-                playerLevel
+                player_level:
+                    playerLevel,
 
-        });
+                user_id:
+                    currentUser.id
+
+            });
 
 
     if (
@@ -889,10 +1407,6 @@ async function joinTournament(
 
     }
 
-
-    // ============================
-    // SUCCESS
-    // ============================
 
     document
         .getElementById(
@@ -1001,6 +1515,21 @@ function searchTournaments() {
 
 function openCreateModal() {
 
+    if (!currentUser) {
+
+        showToast(
+            "يجب تسجيل الدخول أولًا 🔐"
+        );
+
+        openAuthModal(
+            "login"
+        );
+
+        return;
+
+    }
+
+
     document
         .getElementById(
             "createModal"
@@ -1050,6 +1579,637 @@ function closeJoinModal() {
 // MANAGEMENT MODAL
 // ============================
 
+async function openManageTournamentModal(
+    id
+) {
+
+    if (!currentUser) {
+
+        return;
+
+    }
+
+
+    const tournament =
+        tournaments.find(
+            item =>
+                item.id === id
+        );
+
+
+    if (!tournament) {
+
+        return;
+
+    }
+
+
+    if (
+        tournament.ownerId !==
+        currentUser.id
+    ) {
+
+        showToast(
+            "ليس لديك صلاحية إدارة هذه البطولة ❌"
+        );
+
+        return;
+
+    }
+
+
+    document
+        .getElementById(
+            "manageTournamentTitle"
+        )
+        .textContent =
+            `إدارة: ${tournament.name}`;
+
+
+    document
+        .getElementById(
+            "manageTournamentModal"
+        )
+        .classList
+        .add("active");
+
+
+    await loadTournamentManagement(
+        tournament.id
+    );
+
+}
+
+
+async function loadTournamentManagement(
+    tournamentId
+) {
+
+    const requestsResult =
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .select("*")
+            .eq(
+                "tournament_id",
+                tournamentId
+            )
+            .eq(
+                "status",
+                "pending"
+            );
+
+
+    const participantsResult =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .select("*")
+            .eq(
+                "tournament_id",
+                tournamentId
+            );
+
+
+    const requests =
+        requestsResult.data || [];
+
+
+    const participants =
+        participantsResult.data || [];
+
+
+    document
+        .getElementById(
+            "pendingRequestsCount"
+        )
+        .textContent =
+            requests.length;
+
+
+    document
+        .getElementById(
+            "participantsCount"
+        )
+        .textContent =
+            participants.length;
+
+
+    const requestsList =
+        document.getElementById(
+            "requestsList"
+        );
+
+
+    const participantsList =
+        document.getElementById(
+            "participantsList"
+        );
+
+
+    requestsList.innerHTML =
+        "";
+
+
+    participantsList.innerHTML =
+        "";
+
+
+    if (
+        requests.length === 0
+    ) {
+
+        requestsList.innerHTML =
+
+            `<div class="management-empty">
+                لا توجد طلبات مشاركة حاليًا.
+            </div>`;
+
+    } else {
+
+        requests.forEach(
+            request => {
+
+                requestsList.innerHTML += `
+
+                    <div class="management-item">
+
+                        <strong>
+                            ${escapeHTML(
+                                request.player_name
+                            )}
+                        </strong>
+
+                        <span>
+                            Level ${request.player_level}
+                        </span>
+
+                        <div>
+
+                            <button
+                                onclick="approveRequest(${request.id})"
+                            >
+                                قبول
+                            </button>
+
+                            <button
+                                onclick="rejectRequest(${request.id})"
+                            >
+                                رفض
+                            </button>
+
+                        </div>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+
+    if (
+        participants.length === 0
+    ) {
+
+        participantsList.innerHTML =
+
+            `<div class="management-empty">
+                لا يوجد مشاركون حتى الآن.
+            </div>`;
+
+    } else {
+
+        participants.forEach(
+            participant => {
+
+                participantsList.innerHTML += `
+
+                    <div class="management-item">
+
+                        <strong>
+                            ${escapeHTML(
+                                participant.player_name
+                            )}
+                        </strong>
+
+                        <span>
+                            Level ${participant.player_level}
+                        </span>
+
+                    </div>
+
+                `;
+
+            }
+        );
+
+    }
+
+}
+
+
+// ============================
+// APPROVE REQUEST
+// ============================
+
+async function approveRequest(
+    requestId
+) {
+
+    const {
+        data: request,
+        error: requestError
+    } =
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .select("*")
+            .eq(
+                "id",
+                requestId
+            )
+            .single();
+
+
+    if (requestError || !request) {
+
+        showToast(
+            "تعذر العثور على الطلب ❌"
+        );
+
+        return;
+
+    }
+
+
+    const {
+        data: tournament
+    } =
+        await supabaseClient
+            .from(
+                "tournaments"
+            )
+            .select("*")
+            .eq(
+                "id",
+                request.tournament_id
+            )
+            .single();
+
+
+    if (
+        !tournament ||
+        tournament.owner_id !==
+        currentUser.id
+    ) {
+
+        showToast(
+            "ليس لديك صلاحية ❌"
+        );
+
+        return;
+
+    }
+
+
+    const {
+        error: participantError
+    } =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .insert({
+
+                tournament_id:
+                    request.tournament_id,
+
+                player_name:
+                    request.player_name,
+
+                player_level:
+                    request.player_level,
+
+                user_id:
+                    request.user_id || null
+
+            });
+
+
+    if (participantError) {
+
+        showToast(
+            "حدث خطأ أثناء قبول الطلب ❌"
+        );
+
+        return;
+
+    }
+
+
+    const {
+        error: updateError
+    } =
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .update({
+
+                status:
+                    "approved"
+
+            })
+            .eq(
+                "id",
+                requestId
+            );
+
+
+    if (updateError) {
+
+        showToast(
+            "تمت إضافة اللاعب لكن حدث خطأ في تحديث الطلب ❌"
+        );
+
+        return;
+
+    }
+
+
+    showToast(
+        "تم قبول اللاعب 🎉"
+    );
+
+
+    await loadTournamentManagement(
+        request.tournament_id
+    );
+
+}
+
+
+// ============================
+// REJECT REQUEST
+// ============================
+
+async function rejectRequest(
+    requestId
+) {
+
+    const {
+        data: request
+    } =
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .select(
+                "tournament_id"
+            )
+            .eq(
+                "id",
+                requestId
+            )
+            .single();
+
+
+    if (!request) {
+
+        return;
+
+    }
+
+
+    const {
+        data: tournament
+    } =
+        await supabaseClient
+            .from(
+                "tournaments"
+            )
+            .select(
+                "owner_id"
+            )
+            .eq(
+                "id",
+                request.tournament_id
+            )
+            .single();
+
+
+    if (
+        !tournament ||
+        tournament.owner_id !==
+        currentUser.id
+    ) {
+
+        showToast(
+            "ليس لديك صلاحية ❌"
+        );
+
+        return;
+
+    }
+
+
+    const {
+        error
+    } =
+        await supabaseClient
+            .from(
+                "tournament_requests"
+            )
+            .update({
+
+                status:
+                    "rejected"
+
+            })
+            .eq(
+                "id",
+                requestId
+            );
+
+
+    if (error) {
+
+        showToast(
+            "حدث خطأ أثناء رفض الطلب ❌"
+        );
+
+        return;
+
+    }
+
+
+    showToast(
+        "تم رفض الطلب"
+    );
+
+
+    await loadTournamentManagement(
+        request.tournament_id
+    );
+
+}
+
+
+// ============================
+// DETAILS MODAL
+// ============================
+
+async function openDetailsModal(
+    id
+) {
+
+    const tournament =
+        tournaments.find(
+            item =>
+                item.id === id
+        );
+
+
+    if (!tournament) {
+
+        return;
+
+    }
+
+
+    document
+        .getElementById(
+            "detailsTournamentTitle"
+        )
+        .textContent =
+            tournament.name;
+
+
+    document
+        .getElementById(
+            "detailsTournamentType"
+        )
+        .textContent =
+            tournament.type === "private"
+
+                ? "🔒 بطولة خاصة"
+
+                : "🟢 بطولة مفتوحة";
+
+
+    document
+        .getElementById(
+            "detailsModal"
+        )
+        .classList
+        .add("active");
+
+
+    const {
+        data: participants,
+        error
+    } =
+        await supabaseClient
+            .from(
+                "participants"
+            )
+            .select("*")
+            .eq(
+                "tournament_id",
+                tournament.id
+            );
+
+
+    if (error) {
+
+        showToast(
+            "حدث خطأ أثناء تحميل المشاركين ❌"
+        );
+
+        return;
+
+    }
+
+
+    const list =
+        participants || [];
+
+
+    document
+        .getElementById(
+            "detailsParticipantsCount"
+        )
+        .textContent =
+            list.length;
+
+
+    const participantsList =
+        document.getElementById(
+            "detailsParticipantsList"
+        );
+
+
+    participantsList.innerHTML =
+        "";
+
+
+    if (
+        list.length === 0
+    ) {
+
+        participantsList.innerHTML =
+
+            `<div class="management-empty">
+                لا يوجد مشاركون حتى الآن.
+            </div>`;
+
+        return;
+
+    }
+
+
+    list.forEach(
+        participant => {
+
+            participantsList.innerHTML += `
+
+                <div class="management-item">
+
+                    <strong>
+
+                        ${escapeHTML(
+                            participant.player_name
+                        )}
+
+                    </strong>
+
+                    <span>
+
+                        Level
+                        ${participant.player_level}
+
+                    </span>
+
+                </div>
+
+            `;
+
+        }
+    );
+
+}
+
+
+// ============================
+// CLOSE MODALS
+// ============================
+
 function closeManageTournamentModal() {
 
     document
@@ -1061,10 +2221,6 @@ function closeManageTournamentModal() {
 
 }
 
-
-// ============================
-// DETAILS MODAL
-// ============================
 
 function closeDetailsModal() {
 
@@ -1107,10 +2263,9 @@ function showToast(
 ) {
 
     const toast =
-        document
-            .getElementById(
-                "toast"
-            );
+        document.getElementById(
+            "toast"
+        );
 
 
     toast.textContent =
@@ -1162,9 +2317,7 @@ function escapeHTML(
 // ============================
 
 window.addEventListener(
-
     "click",
-
     function(event) {
 
         if (
@@ -1182,7 +2335,6 @@ window.addEventListener(
         }
 
     }
-
 );
 
 
@@ -1191,9 +2343,7 @@ window.addEventListener(
 // ============================
 
 window.addEventListener(
-
     "keydown",
-
     function(event) {
 
         if (
@@ -1218,7 +2368,29 @@ window.addEventListener(
         }
 
     }
+);
 
+
+// ============================
+// AUTH STATE
+// ============================
+
+supabaseClient.auth.onAuthStateChange(
+    async function(
+        event,
+        session
+    ) {
+
+        currentUser =
+            session?.user || null;
+
+
+        await updateUserUI();
+
+
+        renderTournaments();
+
+    }
 );
 
 
@@ -1227,15 +2399,25 @@ window.addEventListener(
 // ============================
 
 document.addEventListener(
-
     "DOMContentLoaded",
+    async function() {
 
-    function() {
+        await loadTournaments();
 
-        loadTournaments();
+        const {
+            data
+        } =
+            await supabaseClient.auth.getUser();
+
+
+        currentUser =
+            data?.user || null;
+
+
+        await updateUserUI();
+
 
         updateTournamentTypeInfo();
 
     }
-
 );
