@@ -46,6 +46,9 @@
 
     <div class="container nav-content">
 
+
+        <!-- LOGO -->
+
         <a
             href="#"
             class="logo"
@@ -62,14 +65,79 @@
         </a>
 
 
-        <button
-            class="create-btn"
-            onclick="openCreateModal()"
-        >
 
-            + إنشاء بطولة
+        <!-- NAV ACTIONS -->
 
-        </button>
+        <div class="nav-actions">
+
+
+            <!-- LOGIN BUTTON -->
+
+            <button
+                class="login-btn"
+                onclick="openAuthModal('login')"
+                id="loginNavButton"
+            >
+
+                تسجيل الدخول
+
+            </button>
+
+
+
+            <!-- SIGN UP BUTTON -->
+
+            <button
+                class="signup-btn"
+                onclick="openAuthModal('signup')"
+                id="signupNavButton"
+            >
+
+                إنشاء حساب
+
+            </button>
+
+
+
+            <!-- USER AREA -->
+
+            <div
+                class="user-area"
+                id="userArea"
+            >
+
+                <span
+                    class="user-email"
+                    id="userEmail"
+                ></span>
+
+
+                <button
+                    class="logout-btn"
+                    onclick="logoutUser()"
+                >
+
+                    تسجيل الخروج
+
+                </button>
+
+            </div>
+
+
+
+            <!-- CREATE TOURNAMENT -->
+
+            <button
+                class="create-btn"
+                onclick="openCreateModal()"
+            >
+
+                + إنشاء بطولة
+
+            </button>
+
+
+        </div>
 
     </div>
 
@@ -180,9 +248,7 @@
 
 
 
-    <!-- ============================ -->
     <!-- SEARCH -->
-    <!-- ============================ -->
 
     <div class="search-box">
 
@@ -209,9 +275,7 @@
 
 
 
-    <!-- ============================ -->
     <!-- TOURNAMENT GRID -->
-    <!-- ============================ -->
 
     <div
 
@@ -223,9 +287,7 @@
 
 
 
-    <!-- ============================ -->
     <!-- EMPTY STATE -->
-    <!-- ============================ -->
 
     <div
 
@@ -278,9 +340,215 @@
 
 
 <!-- ============================ -->
-<!-- CREATE TOURNAMENT MODAL -->
+<!-- AUTH MODAL -->
+<!-- تسجيل الدخول / إنشاء حساب -->
 <!-- ============================ -->
 
+<div
+
+    class="modal-overlay"
+
+    id="authModal"
+
+>
+
+
+    <div class="modal auth-modal">
+
+
+        <!-- CLOSE -->
+
+        <button
+
+            class="close-modal"
+
+            onclick="closeAuthModal()"
+
+        >
+
+            ×
+
+        </button>
+
+
+
+        <!-- HEADER -->
+
+        <div class="modal-header">
+
+
+            <div class="modal-icon">
+
+                ⚽
+
+            </div>
+
+
+            <h2 id="authTitle">
+
+                تسجيل الدخول
+
+            </h2>
+
+
+            <p id="authSubtitle">
+
+                سجل دخولك للانضمام إلى البطولات
+
+            </p>
+
+
+        </div>
+
+
+
+        <!-- AUTH FORM -->
+
+        <form
+
+            id="authForm"
+
+            onsubmit="handleAuth(event)"
+
+        >
+
+
+            <!-- EMAIL -->
+
+            <div class="input-group">
+
+
+                <label>
+
+                    البريد الإلكتروني
+
+                </label>
+
+
+                <input
+
+                    type="email"
+
+                    id="authEmail"
+
+                    placeholder="example@email.com"
+
+                    autocomplete="email"
+
+                    required
+
+                >
+
+
+            </div>
+
+
+
+            <!-- PASSWORD -->
+
+            <div class="input-group">
+
+
+                <label>
+
+                    كلمة المرور
+
+                </label>
+
+
+                <input
+
+                    type="password"
+
+                    id="authPassword"
+
+                    placeholder="••••••••"
+
+                    autocomplete="current-password"
+
+                    minlength="6"
+
+                    required
+
+                >
+
+
+            </div>
+
+
+
+            <!-- AUTH ERROR -->
+
+            <div
+
+                class="auth-error"
+
+                id="authError"
+
+            ></div>
+
+
+
+            <!-- SUBMIT -->
+
+            <button
+
+                type="submit"
+
+                class="submit-button"
+
+                id="authSubmitButton"
+
+            >
+
+                تسجيل الدخول
+
+            </button>
+
+
+        </form>
+
+
+
+        <!-- SWITCH LOGIN / SIGNUP -->
+
+        <div class="auth-switch">
+
+
+            <span id="authSwitchText">
+
+                ليس لديك حساب؟
+
+            </span>
+
+
+            <button
+
+                type="button"
+
+                onclick="toggleAuthMode()"
+
+                id="authSwitchButton"
+
+            >
+
+                إنشاء حساب
+
+            </button>
+
+
+        </div>
+
+
+    </div>
+
+</div>
+
+
+
+<!-- ============================ -->
+<!-- CREATE TOURNAMENT MODAL -->
+<!-- ============================ -->
 
 <div
 
@@ -345,10 +613,7 @@
         >
 
 
-            <!-- اسم البطولة -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -369,15 +634,11 @@
 
                 >
 
-
             </div>
 
 
 
-            <!-- وصف البطولة -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -396,15 +657,11 @@
 
                 ></textarea>
 
-
             </div>
 
 
 
-            <!-- نوع البطولة -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -436,7 +693,6 @@
 
                     </option>
 
-
                 </select>
 
 
@@ -446,15 +702,11 @@
 
                 </small>
 
-
             </div>
 
 
 
-            <!-- الجائزة -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -487,7 +739,6 @@
 
                     </span>
 
-
                 </div>
 
 
@@ -497,18 +748,14 @@
 
                 </small>
 
-
             </div>
 
 
-
-            <!-- LEVELS -->
 
             <div class="levels-row">
 
 
                 <div class="input-group">
-
 
                     <label>
 
@@ -519,66 +766,24 @@
 
                     <select id="minLevel">
 
-
-                        <option value="1">
-                            Level 1
-                        </option>
-
-
-                        <option value="2">
-                            Level 2
-                        </option>
-
-
-                        <option value="3">
-                            Level 3
-                        </option>
-
-
-                        <option value="4">
-                            Level 4
-                        </option>
-
-
-                        <option value="5">
-                            Level 5
-                        </option>
-
-
-                        <option value="6">
-                            Level 6
-                        </option>
-
-
-                        <option value="7">
-                            Level 7
-                        </option>
-
-
-                        <option value="8">
-                            Level 8
-                        </option>
-
-
-                        <option value="9">
-                            Level 9
-                        </option>
-
-
-                        <option value="10">
-                            Level 10
-                        </option>
-
+                        <option value="1">Level 1</option>
+                        <option value="2">Level 2</option>
+                        <option value="3">Level 3</option>
+                        <option value="4">Level 4</option>
+                        <option value="5">Level 5</option>
+                        <option value="6">Level 6</option>
+                        <option value="7">Level 7</option>
+                        <option value="8">Level 8</option>
+                        <option value="9">Level 9</option>
+                        <option value="10">Level 10</option>
 
                     </select>
-
 
                 </div>
 
 
 
                 <div class="input-group">
-
 
                     <label>
 
@@ -589,59 +794,18 @@
 
                     <select id="maxLevel">
 
-
-                        <option value="10">
-                            Level 10
-                        </option>
-
-
-                        <option value="9">
-                            Level 9
-                        </option>
-
-
-                        <option value="8">
-                            Level 8
-                        </option>
-
-
-                        <option value="7">
-                            Level 7
-                        </option>
-
-
-                        <option value="6">
-                            Level 6
-                        </option>
-
-
-                        <option value="5">
-                            Level 5
-                        </option>
-
-
-                        <option value="4">
-                            Level 4
-                        </option>
-
-
-                        <option value="3">
-                            Level 3
-                        </option>
-
-
-                        <option value="2">
-                            Level 2
-                        </option>
-
-
-                        <option value="1">
-                            Level 1
-                        </option>
-
+                        <option value="10">Level 10</option>
+                        <option value="9">Level 9</option>
+                        <option value="8">Level 8</option>
+                        <option value="7">Level 7</option>
+                        <option value="6">Level 6</option>
+                        <option value="5">Level 5</option>
+                        <option value="4">Level 4</option>
+                        <option value="3">Level 3</option>
+                        <option value="2">Level 2</option>
+                        <option value="1">Level 1</option>
 
                     </select>
-
 
                 </div>
 
@@ -650,10 +814,7 @@
 
 
 
-            <!-- رابط الجروب -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -673,7 +834,6 @@
                     required
 
                 >
-
 
             </div>
 
@@ -705,7 +865,6 @@
 <!-- ============================ -->
 <!-- JOIN TOURNAMENT MODAL -->
 <!-- ============================ -->
-
 
 <div
 
@@ -750,17 +909,13 @@
             </h2>
 
 
-            <!-- نوع البطولة يظهر هنا -->
-
             <div
 
                 class="join-tournament-type"
 
                 id="joinTournamentType"
 
-            >
-
-            </div>
+            ></div>
 
 
             <p>
@@ -783,10 +938,7 @@
         >
 
 
-            <!-- اسم اللاعب -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -807,15 +959,11 @@
 
                 >
 
-
             </div>
 
 
 
-            <!-- LEVEL اللاعب -->
-
             <div class="input-group">
-
 
                 <label>
 
@@ -826,65 +974,22 @@
 
                 <select id="playerLevel">
 
-
-                    <option value="1">
-                        Level 1
-                    </option>
-
-
-                    <option value="2">
-                        Level 2
-                    </option>
-
-
-                    <option value="3">
-                        Level 3
-                    </option>
-
-
-                    <option value="4">
-                        Level 4
-                    </option>
-
-
-                    <option value="5">
-                        Level 5
-                    </option>
-
-
-                    <option value="6">
-                        Level 6
-                    </option>
-
-
-                    <option value="7">
-                        Level 7
-                    </option>
-
-
-                    <option value="8">
-                        Level 8
-                    </option>
-
-
-                    <option value="9">
-                        Level 9
-                    </option>
-
-
-                    <option value="10">
-                        Level 10
-                    </option>
-
+                    <option value="1">Level 1</option>
+                    <option value="2">Level 2</option>
+                    <option value="3">Level 3</option>
+                    <option value="4">Level 4</option>
+                    <option value="5">Level 5</option>
+                    <option value="6">Level 6</option>
+                    <option value="7">Level 7</option>
+                    <option value="8">Level 8</option>
+                    <option value="9">Level 9</option>
+                    <option value="10">Level 10</option>
 
                 </select>
-
 
             </div>
 
 
-
-            <!-- رسالة الخطأ -->
 
             <div
 
@@ -895,8 +1000,6 @@
             ></div>
 
 
-
-            <!-- نص يتغير حسب نوع البطولة -->
 
             <div
 
@@ -930,11 +1033,6 @@
 
         </form>
 
-
-
-        <!-- ============================ -->
-        <!-- SUCCESS / JOIN STATUS -->
-        <!-- ============================ -->
 
 
         <div
@@ -998,9 +1096,7 @@
 
 <!-- ============================ -->
 <!-- TOURNAMENT MANAGEMENT MODAL -->
-<!-- صاحب البطولة فقط -->
 <!-- ============================ -->
-
 
 <div
 
@@ -1056,11 +1152,6 @@
 
 
 
-        <!-- ============================ -->
-        <!-- REQUESTS -->
-        <!-- ============================ -->
-
-
         <div class="management-section">
 
 
@@ -1112,11 +1203,6 @@
 
         </div>
 
-
-
-        <!-- ============================ -->
-        <!-- PARTICIPANTS -->
-        <!-- ============================ -->
 
 
         <div class="management-section">
@@ -1180,9 +1266,7 @@
 
 <!-- ============================ -->
 <!-- TOURNAMENT DETAILS MODAL -->
-<!-- عرض المشاركين والطلبات -->
 <!-- ============================ -->
-
 
 <div
 
@@ -1227,16 +1311,12 @@
             </h2>
 
 
-            <p id="detailsTournamentType">
-
-            </p>
+            <p id="detailsTournamentType"></p>
 
 
         </div>
 
 
-
-        <!-- PARTICIPANTS -->
 
         <div class="management-section">
 
@@ -1288,8 +1368,6 @@
 
 
 
-        <!-- PUBLIC REQUEST STATUS -->
-
         <div
 
             class="public-requests-info"
@@ -1314,7 +1392,6 @@
 <!-- TOAST -->
 <!-- ============================ -->
 
-
 <div
 
     class="toast"
@@ -1333,19 +1410,17 @@
 <!-- SUPABASE -->
 <!-- ============================ -->
 
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
 
 
 <!-- ============================ -->
-<!-- YOUR JAVASCRIPT -->
+<!-- JAVASCRIPT -->
 <!-- ============================ -->
-
 
 <script src="script.js"></script>
 
 
 </body>
 
-  </html>
+    </html>
